@@ -1,0 +1,174 @@
+{
+  "id": "@ryu/meetings",
+  "name": "Meetings",
+  "version": "1.0.0",
+  "description": "Meeting notes: record → live transcript → AI notes, auto-saved into the Meetings Space so they stay editable and RAG-searchable.",
+  "engines": {
+    "ryu": ">=0.0.1"
+  },
+  "runnables": [
+    {
+      "id": "meetings-companion",
+      "name": "Meetings",
+      "kind": "companion",
+      "config": {
+        "label": "Meetings",
+        "ui_entry": "./dist/index.html",
+        "ui_format": "html",
+        "csp": {
+          "connect_domains": [
+            "https://api.iconify.design",
+            "https://api.dicebear.com"
+          ],
+          "resource_domains": [
+            "https://api.iconify.design",
+            "https://api.dicebear.com"
+          ]
+        }
+      }
+    }
+  ],
+  "sidecars": [
+    {
+      "name": "ryu-meetings",
+      "process": {
+        "kind": "local",
+        "command": "ryu-meetings",
+        "command_env": "RYU_MEETINGS_BIN",
+        "port_env": "RYU_MEETINGS_PORT"
+      },
+      "port": 7998,
+      "health_path": "/health",
+      "http": {
+        "mount": "/api/meetings",
+        "public_mount": "/api/meetings",
+        "routes": [
+          { "path": "/stream" },
+          { "path": "/detect" },
+          { "path": "/detection-config" },
+          { "path": "/templates" },
+          { "path": "/import" },
+          { "path": "/" },
+          { "path": "/:id" },
+          { "path": "/:id/title" },
+          { "path": "/:id/icon" },
+          { "path": "/:id/chunk" },
+          { "path": "/:id/finalize" },
+          { "path": "/:id/transcript" }
+        ]
+      },
+      "host_api": {
+        "grants": ["spaces:docs"]
+      }
+    }
+  ],
+  "requires": {
+    "apps": [
+      {
+        "id": "@ryu/spaces",
+        "min_version": "1.0.0"
+      }
+    ],
+    "grants": ["spaces:docs"]
+  },
+  "permission_grants": ["spaces:docs", "meetings:crud"],
+  "companion": {
+    "label": "Meetings",
+    "icon": "mic-01"
+  },
+  "contributes": {
+    "hook_events": [
+      {
+        "id": "@ryu/meetings#meeting.started",
+        "title": "Meeting started",
+        "description": "A meeting record was created and audio ingest began. Fires once per meeting on both paths: a live recording (Shadow capture is starting) and a file import, where it is followed within the same request by the transcription pass and meeting.ended — `app` is \"import\" in that case.",
+        "payload_example": {
+          "meeting_id": "mtg_9f0c2a1b4d3e4f5a8b7c6d5e4f3a2b1c",
+          "title": "Zoom call",
+          "app": "zoom",
+          "source": "auto",
+          "started_at": "2026-08-01T14:02:11Z"
+        }
+      },
+      {
+        "id": "@ryu/meetings#meeting.ended",
+        "title": "Meeting ended",
+        "description": "A meeting was finalized: capture stopped, notes were generated from the transcript, and the auto-title was applied — so the title here is the one the user sees. Fires again if the same meeting is finalized a second time (finalizing is not one-shot), and not at all when note generation failed. The transcript is NOT in the payload; read it from GET /api/meetings/{id}/transcript.",
+        "payload_example": {
+          "meeting_id": "mtg_9f0c2a1b4d3e4f5a8b7c6d5e4f3a2b1c",
+          "title": "Pricing review with Acme",
+          "app": "zoom",
+          "started_at": "2026-08-01T14:02:11Z",
+          "ended_at": "2026-08-01T14:48:03Z",
+          "summary": "Acme wants annual billing before the pilot converts.",
+          "action_items": ["Send the annual quote by Friday"]
+        }
+      },
+      {
+        "id": "@ryu/meetings#notes.ready",
+        "title": "Meeting notes filed",
+        "description": "The generated notes landed in the Meetings Space as an editable, RAG-searchable document, immediately after meeting.ended. Filing is best-effort, so this does NOT fire when the Space save failed — the notes still exist on the meeting record, they are just not mirrored. Subscribe here (not to meeting.ended) when you need a document to link to.",
+        "payload_example": {
+          "meeting_id": "mtg_9f0c2a1b4d3e4f5a8b7c6d5e4f3a2b1c",
+          "title": "Pricing review with Acme",
+          "space_id": "spc_2b1c4d3e5f6a7b8c",
+          "doc_id": "doc_7c6d5e4f3a2b1c0d"
+        }
+      }
+    ],
+    "settings_tabs": [
+      {
+        "id": "meetings.settings",
+        "title": "Meetings",
+        "scope": "node",
+        "view": "meetings"
+      }
+    ],
+    "sidebar_sections": [
+      {
+        "id": "meetings",
+        "title": "Meetings",
+        "icon": "mic-01",
+        "spec": {
+          "source": {
+            "http": { "method": "GET", "path": "/api/meetings" },
+            "items": "meetings"
+          },
+          "itemTarget": "/meetings/{{item.id}}",
+          "itemActions": [
+            {
+              "id": "delete",
+              "label": "Delete",
+              "icon": "lucide:trash-2",
+              "style": "danger",
+              "http": {
+                "method": "DELETE",
+                "path": "/api/meetings/{{item.id}}"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "views": [
+      {
+        "id": "surface:meetings",
+        "title": "Meetings",
+        "view": "list-detail",
+        "spec": {
+          "view": "list-detail",
+          "items": [],
+          "emptyText": "No meetings yet — record one from the desktop app.",
+          "source": {
+            "http": { "method": "GET", "path": "/api/meetings" },
+            "items": "meetings",
+            "map": {
+              "subtitle": "created_at",
+              "accessory": "status"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
