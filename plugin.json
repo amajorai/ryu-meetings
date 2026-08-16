@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ryu.meetings",
+  "version": "0.1.14",
+  "description": "Meeting notes: record → live transcript → AI notes, auto-saved into the Meetings Space so they stay editable and RAG-searchable.",
+  "keywords": [
+    "meetings",
+    "transcription",
+    "notes",
+    "recording"
+  ],
+  "extensions": {
+    "com.ryuhq.ryu": {
+      "id": "@ryu/meetings",
+      "displayName": "Meetings"
+    }
+  }
+}
