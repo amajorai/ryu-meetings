@@ -1,0 +1,7 @@
+# Base server runtime only. Install the selected model stack with the `diarize`
+# or `nemotron` extra from pyproject.toml; match torch/torchaudio to the host's
+# accelerator when using GPU inference.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+python-multipart>=0.0.31
